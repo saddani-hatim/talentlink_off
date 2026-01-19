@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model analysisreport {
+  id             String         @id @default(uuid())
+  companyId      String
+  title          String
+  type           String
+  content        Json
+  createdAt      DateTime       @default(now())
+  companyprofile companyprofile @relation(fields: [companyId], references: [id], map: "AnalysisReport_companyId_fkey")
+
+  @@index([companyId], map: "AnalysisReport_companyId_fkey")
+}
+
+model application {
+  id               String             @id @default(uuid())
+  jobId            String
+  candidateId      String
+  status           application_status @default(PENDING)
+  aiScore          Int?
+  aiAnalysis       String?            @db.Text
+  appliedAt        DateTime           @default(now())
+  updatedAt        DateTime
+  candidateprofile candidateprofile   @relation(fields: [candidateId], references: [id], map: "Application_candidateId_fkey")
+  job              job                @relation(fields: [jobId], references: [id], map: "Application_jobId_fkey")
+
+  @@index([candidateId], map: "Application_candidateId_fkey")
+  @@index([jobId], map: "Application_jobId_fkey")
+}
+
+model candidateprofile {
+  id                  String                @id @default(uuid())
+  userId              String                @unique(map: "CandidateProfile_userId_key")
+  firstName           String
+  lastName            String
+  title               String?
+  bio                 String?               @db.Text
+  location            String?
+  phone               String?
+  cvUrl               String?
+  website             String?
+  githubUrl           String?
+  linkedinUrl         String?
+  technicalScore      Int                   @default(0)
+  matchRate           Int                   @default(0)
+  avatarUrl           String?
+  notifMatches        Boolean               @default(true)
+  notifAiCoach        Boolean               @default(true)
+  notifUpdates        Boolean               @default(true)
+  application         application[]
+  user                user                  @relation(fields: [userId], references: [id], map: "CandidateProfile_userId_fkey")
+  candidateskill      candidateskill[]
+  candidatetestresult candidatetestresult[]
+  certification       certification[]
+  education           education[]
+  experience          experience[]
+  project             project[]
+  roadmap             roadmap[]
+}
+
+model candidateskill {
+  id               String           @id @default(uuid())
+  candidateId      String
+  skillId          String
+  level            Int?
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "CandidateSkill_candidateId_fkey")
+  skill            skill            @relation(fields: [skillId], references: [id], map: "CandidateSkill_skillId_fkey")
+
+  @@index([candidateId], map: "CandidateSkill_candidateId_fkey")
+  @@index([skillId], map: "CandidateSkill_skillId_fkey")
+}
+
+model candidatetestresult {
+  id               String           @id @default(uuid())
+  candidateId      String
+  testId           String
+  score            Int
+  status           String
+  completedAt      DateTime         @default(now())
+  aiAnalysis       String?          @db.Text
+  feedback         String?          @db.Text
+  isOriginal       Boolean?         @default(true)
+  logicScore       Int?
+  performanceScore Int?
+  qualityScore     Int?
+  structureScore   Int?
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "CandidateTestResult_candidateId_fkey")
+  technicaltest    technicaltest    @relation(fields: [testId], references: [id], map: "CandidateTestResult_testId_fkey")
+
+  @@index([candidateId], map: "CandidateTestResult_candidateId_fkey")
+  @@index([testId], map: "CandidateTestResult_testId_fkey")
+}
+
+model certification {
+  id               String           @id @default(uuid())
+  candidateId      String
+  name             String
+  issuer           String
+  issueDate        DateTime
+  expiryDate       DateTime?
+  credentialUrl    String?
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "Certification_candidateId_fkey")
+
+  @@index([candidateId], map: "Certification_candidateId_fkey")
+}
+
+model companyprofile {
+  id             String           @id @default(uuid())
+  userId         String           @unique(map: "CompanyProfile_userId_key")
+  name           String
+  description    String?          @db.Text
+  industry       String?
+  size           String?
+  website        String?
+  logoUrl        String?
+  location       String?
+  analysisreport analysisreport[]
+  user           user             @relation(fields: [userId], references: [id], map: "CompanyProfile_userId_fkey")
+  job            job[]
+}
+
+model education {
+  id               String           @id @default(uuid())
+  candidateId      String
+  school           String
+  degree           String
+  fieldOfStudy     String?
+  startDate        DateTime
+  endDate          DateTime?
+  description      String?          @db.Text
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "Education_candidateId_fkey")
+
+  @@index([candidateId], map: "Education_candidateId_fkey")
+}
+
+model emailverification {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "EmailVerification_userId_fkey")
+
+  @@index([userId], map: "EmailVerification_userId_fkey")
+}
+
+model experience {
+  id               String           @id @default(uuid())
+  candidateId      String
+  company          String
+  position         String
+  startDate        DateTime
+  endDate          DateTime?
+  description      String?          @db.Text
+  isCurrent        Boolean          @default(false)
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "Experience_candidateId_fkey")
+
+  @@index([candidateId], map: "Experience_candidateId_fkey")
+}
+
+model job {
+  id             String         @id @default(uuid())
+  companyId      String
+  title          String
+  description    String         @db.Text
+  requirements   String?        @db.Text
+  location       String?
+  salaryRange    String?
+  type           job_type       @default(FULL_TIME)
+  status         job_status     @default(OPEN)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime
+  application    application[]
+  companyprofile companyprofile @relation(fields: [companyId], references: [id], map: "Job_companyId_fkey")
+
+  @@index([companyId], map: "Job_companyId_fkey")
+}
+
+model passwordresettoken {
+  id        String   @id @default(uuid())
+  token     String   @unique(map: "PasswordResetToken_token_key") @db.VarChar(255)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "PasswordResetToken_userId_fkey")
+
+  @@index([userId], map: "PasswordResetToken_userId_fkey")
+}
+
+model project {
+  id               String           @id @default(uuid())
+  candidateId      String
+  title            String
+  description      String?          @db.Text
+  imageUrl         String?
+  projectUrl       String?
+  repoUrl          String?
+  technologies     String?
+  createdAt        DateTime         @default(now())
+  difficulty       String?          @default("Béton")
+  status           String           @default("IN_PROGRESS")
+  technology       String?
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "Project_candidateId_fkey")
+
+  @@index([candidateId], map: "Project_candidateId_fkey")
+}
+
+model refreshtoken {
+  id        String   @id @default(uuid())
+  token     String   @db.Text
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "RefreshToken_userId_fkey")
+
+  @@index([userId], map: "RefreshToken_userId_fkey")
+}
+
+model roadmap {
+  id               String           @id @default(uuid())
+  candidateId      String
+  title            String
+  description      String?          @db.Text
+  status           String           @default("ACTIVE")
+  createdAt        DateTime         @default(now())
+  candidateprofile candidateprofile @relation(fields: [candidateId], references: [id], map: "Roadmap_candidateId_fkey")
+  roadmapstep      roadmapstep[]
+
+  @@index([candidateId], map: "Roadmap_candidateId_fkey")
+}
+
+model roadmapstep {
+  id          String  @id @default(uuid())
+  roadmapId   String
+  title       String
+  description String? @db.Text
+  isCompleted Boolean @default(false)
+  order       Int
+  status      String?
+  roadmap     roadmap @relation(fields: [roadmapId], references: [id], map: "RoadmapStep_roadmapId_fkey")
+
+  @@index([roadmapId], map: "RoadmapStep_roadmapId_fkey")
+}
+
+model skill {
+  id             String           @id @default(uuid())
+  name           String           @unique(map: "Skill_name_key")
+  category       String?
+  candidateskill candidateskill[]
+}
+
+model technicaltest {
+  id                  String                @id @default(uuid())
+  title               String
+  description         String                @db.Text
+  category            String
+  difficulty          String
+  duration            Int
+  points              Int
+  isAiGenerated       Boolean               @default(false)
+  requirements        String?               @db.Text
+  candidatetestresult candidatetestresult[]
+}
+
+model user {
+  id                 String               @id @default(uuid())
+  email              String               @unique(map: "User_email_key")
+  password           String?
+  role               user_role            @default(CANDIDATE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  githubId           String?              @unique(map: "User_githubId_key")
+  googleId           String?              @unique(map: "User_googleId_key")
+  isTwoFactorEnabled Boolean              @default(false)
+  candidateprofile   candidateprofile?
+  companyprofile     companyprofile?
+  emailverification  emailverification[]
+  passwordresettoken passwordresettoken[]
+  refreshtoken       refreshtoken[]
+}
+
+enum application_status {
+  PENDING
+  REVIEWING
+  INTERVIEW
+  TECHNICAL_TEST
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum user_role {
+  CANDIDATE
+  COMPANY
+  ADMIN
+}
+
+enum job_type {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+}
+
+enum job_status {
+  OPEN
+  CLOSED
+  DRAFT
+  ARCHIVED
+}
